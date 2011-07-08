@@ -1,0 +1,93 @@
+#!/usr/local/bin/python
+import sys
+f=open(sys.argv[1])
+l,namindex,names,prol=int(f.readline().rstrip()),{},[],[]
+N=l
+Mat=[ [None] * l for x in xrange(l) ]
+for i in xrange(N):
+	Mat[i][i]=0
+while l>0:
+	l -=1
+	lname,P=f.readline().split()[:2]
+	P=float(P)
+	prol.append(P)
+	namindex[lname]=len(names)
+	names.append(lname)
+l,mm=int(f.readline().rstrip()),0
+while l>0:
+	l -=1
+	src,dest,dist=f.readline().split()[:3]
+	src,dest,dist=namindex[src],namindex[dest],int(dist)
+	Mat[src][dest],Mat[dest][src]=dist,dist
+for k in xrange(N):
+	for i in xrange(N):
+		for j in xrange(N):
+			ij,ik,kj=Mat[i][j],Mat[i][k],Mat[k][j]
+			# Mat[i][j]=min(ik+kj,ij)
+			if ij!= None:
+				if ik!=None and kj!=None:
+					Mat[i][j]= min(ik+kj,ij)
+			else:
+				if ik!=None and kj!=None:
+					Mat[i][j]= ik+kj
+pmap=[]
+for v0, conn in enumerate(Mat):
+	pv = []
+	for v in xrange(len(Mat)):
+		if v0 == v:
+			continue
+		d = conn[v]
+		p = prol[v]
+		score = d*(1.0-p)
+		pv.append((score,v))
+	pv.sort()
+	pmap.append(pv)
+for x in Mat:
+	if None in x:
+		print "-1.00"
+		break
+else:
+#Start the Algo
+#stuff needed
+	curmin=9999999999
+	class mover:
+		def __init__(self):
+			self.color=[0] * N
+			self.curpos,self.prevpos,self.numdone,self.probdone,self.curscore,self.path_len,self.pstack=0,0,0,0.0,0.0,0,[]
+		def move(self,v):
+			self.prevpos=self.curpos
+			self.pstack.append((self.prevpos,self.path_len,self.curscore,self.probdone))
+			self.curpos=v
+			self.path_len+=Mat[self.curpos][self.prevpos]
+			self.curscore+=prol[self.curpos] * self.path_len
+			self.probdone+=prol[v]
+			self.color[v]=1
+		def backtrack(self):
+			self.prevpos=self.curpos
+			self.color[self.prevpos]=0
+			self.curpos,self.path_len,self.curscore,self.probdone=self.pstack.pop()
+	def tour(mv,v=0):
+		#Going to next node
+		mv.move(v)
+		global curmin,mm
+		mm+=1
+		try:
+			if len(mv.pstack) == N :
+				if mv.curscore < curmin:
+					curmin=mv.curscore
+				else:
+					return
+			else:
+				if curmin < (mv.curscore + mv.path_len * ( 1- mv.probdone)):
+					return
+				for score,x in pmap[v]:
+					if mv.color[x]==0:
+						if not x== mv.curpos:
+							tour(mv,x)
+		#Backtracking
+		finally:
+			mv.backtrack()
+	mv=mover()
+	tour(mv)
+	print mm
+	print "%0.2f" % curmin
